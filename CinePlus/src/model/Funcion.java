@@ -107,8 +107,16 @@ public class Funcion {
      * @return true si el asiento está disponible
      */
     public boolean asientoDisponible(String fila, int numero) {
+        if (theSala == null || fila == null || fila.length() != 1) {
+            return false;
+        }
 
-        return true;
+        char letraFila = Character.toUpperCase(fila.charAt(0));
+
+        return letraFila >= 'A'
+                && letraFila < 'A' + theSala.getFilas()
+                && numero >= 1
+                && numero <= theSala.getColumnas();
     }
 
     public String getCodigo() {
