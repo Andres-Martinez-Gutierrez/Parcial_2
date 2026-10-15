@@ -36,16 +36,18 @@ public class Main {
 
         boolean salir = false;
         while (!salir) {
-            int opcion = JOptionPane.showOptionDialog(
+            String seleccion = (String) JOptionPane.showInputDialog(
                     null,
                     "Selecciona una operación:",
-                    "CinePlus",
-                    JOptionPane.DEFAULT_OPTION,
-                    JOptionPane.PLAIN_MESSAGE,
+                    "CinePlus - Menú principal",
+                    JOptionPane.QUESTION_MESSAGE,
                     null,
                     OPCIONES,
                     OPCIONES[0]
             );
+            int opcion = seleccion == null
+                    ? -1
+                    : java.util.Arrays.asList(OPCIONES).indexOf(seleccion);
 
             if (opcion == -1 || opcion == OPCIONES.length - 1) {
                 salir = true;
@@ -552,16 +554,66 @@ public class Main {
 
     private static void mostrarLista(String titulo, List<?> elementos) {
         if (elementos.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No hay registros.",
-                    titulo, JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    null, "No hay registros.", titulo, JOptionPane.INFORMATION_MESSAGE
+            );
             return;
         }
+
         StringBuilder contenido = new StringBuilder();
         for (Object elemento : elementos) {
-            contenido.append(elemento).append("\n\n");
+            contenido.append(formatearElemento(elemento)).append('\n');
         }
-        JOptionPane.showMessageDialog(null, contenido.toString(),
-                titulo, JOptionPane.INFORMATION_MESSAGE);
+
+        JOptionPane.showMessageDialog(
+                null, contenido.toString(), titulo, JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    private static String formatearElemento(Object elemento) {
+        if (elemento instanceof Pelicula) {
+            Pelicula pelicula = (Pelicula) elemento;
+            return pelicula.getCodigo() + " | " + pelicula.getTitulo()
+                    + " | " + pelicula.getDuracionMinutos() + " min"
+                    + " | " + pelicula.getGenero()
+                    + " | " + pelicula.getClasificacionEdad();
+        }
+
+        if (elemento instanceof Sala) {
+            Sala sala = (Sala) elemento;
+            return sala.getCodigo() + " | " + sala.getNombre()
+                    + " | " + sala.getTipo()
+                    + " | Capacidad: " + sala.getCapacidadMaxima();
+        }
+
+        if (elemento instanceof Funcion) {
+            Funcion funcion = (Funcion) elemento;
+            return funcion.getCodigo() + " | "
+                    + funcion.getThePelicula().getTitulo() + " | "
+                    + funcion.getFecha() + " "
+                    + funcion.getHoraInicio().toLocalTime() + " | Sala: "
+                    + funcion.getTheSala().getNombre();
+        }
+
+        if (elemento instanceof Venta) {
+            Venta venta = (Venta) elemento;
+            return venta.getCodigo() + " | "
+                    + venta.getFecha() + " | Boletas: "
+                    + venta.getListaBoletaVenta().size() + " | Total: $"
+                    + String.format("%.2f", venta.calcularTotal());
+        }
+
+        if (elemento instanceof Cliente) {
+            Cliente cliente = (Cliente) elemento;
+            return cliente.getDocumento() + " | " + cliente.getNombreCompleto();
+        }
+
+        if (elemento instanceof Operario) {
+            Operario operario = (Operario) elemento;
+            return operario.getDocumento() + " | " + operario.getNombreCompleto();
+        }
+
+        return String.valueOf(elemento);
     }
 
     private static void mostrarResultado(boolean correcto, String exito, String fallo) {

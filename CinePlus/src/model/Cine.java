@@ -99,27 +99,49 @@ public class Cine {
      * @return true si la función fue programada correctamente
      */
     public boolean programarFuncion(Funcion funcion) {
-
-        if (funcion == null) {
+        if (funcion == null
+                || funcion.getCodigo() == null
+                || funcion.getFecha() == null
+                || funcion.getHoraInicio() == null
+                || funcion.getThePelicula() == null
+                || funcion.getTheSala() == null) {
             return false;
         }
 
-        if (funcion.getThePelicula() == null ||
-                funcion.getTheSala() == null) {
+        for (Funcion existente : listaFunciones) {
+            if (existente.getCodigo().equalsIgnoreCase(funcion.getCodigo())) {
+                return false;
+            }
+        }
 
+        boolean peliculaRegistrada = false;
+        for (Pelicula pelicula : listaPeliculas) {
+            if (pelicula.getCodigo().equalsIgnoreCase(
+                    funcion.getThePelicula().getCodigo())) {
+                peliculaRegistrada = true;
+                break;
+            }
+        }
+
+        boolean salaRegistrada = false;
+        for (Sala sala : listaSalas) {
+            if (sala.getCodigo().equalsIgnoreCase(
+                    funcion.getTheSala().getCodigo())) {
+                salaRegistrada = true;
+                break;
+            }
+        }
+
+        if (!peliculaRegistrada || !salaRegistrada) {
             return false;
         }
 
-        if (!salaDisponible(
+        return salaDisponible(
                 funcion.getTheSala(),
                 funcion.getFecha(),
-                funcion.getHoraInicio())) {
-
-            return false;
-        }
-
-        listaFunciones.add(funcion);
-        return true;
+                funcion.getHoraInicio(),
+                funcion.getThePelicula().getDuracionMinutos()
+        );
     }
 
     /**
@@ -154,22 +176,104 @@ public class Cine {
      * @return true si fue registrada correctamente
      */
     public boolean registrarVenta(Venta venta) {
-
-        if (venta == null) {
+        if (venta == null
+                || venta.getCodigo() == null
+                || venta.getTheCliente() == null
+                || venta.getTheOperario() == null
+                || venta.getTheFuncion() == null
+                || venta.getTheFuncion().getTheSala() == null
+                || venta.getListaBoletaVenta() == null
+                || venta.getListaBoletaVenta().isEmpty()) {
             return false;
         }
 
-        for (Venta ventaExistente : listaVentas) {
-
-            if (ventaExistente.getCodigo()
-                    .equalsIgnoreCase(venta.getCodigo())) {
-
+        for (Venta existente : listaVentas) {
+            if (existente.getCodigo().equalsIgnoreCase(venta.getCodigo())) {
                 return false;
+            }
+        }
+
+        if (!personaRegistrada(venta.getTheCliente(), Cliente.class)
+                || !personaRegistrada(venta.getTheOperario(), Operario.class)
+                || !funcionRegistrada(venta.getTheFuncion())) {
+            return false;
+        }
+
+        Sala sala = venta.getTheFuncion().getTheSala();
+        List<Boleta> boletasNuevas = venta.getListaBoletaVenta();
+
+        for (int i = 0; i < boletasNuevas.size(); i++) {
+            Boleta boleta = boletasNuevas.get(i);
+
+            if (boleta == null || !asientoValido(sala, boleta)) {
+                return false;
+            }
+
+            // Evita repetir un asiento dentro de esta misma venta.
+            for (int j = 0; j < i; j++) {
+                Boleta anterior = boletasNuevas.get(j);
+                if (mismoAsiento(anterior, boleta)) {
+                    return false;
+                }
+            }
+
+            // Evita vender un asiento que ya aparece en otra venta de esta función.
+            for (Venta ventaExistente : listaVentas) {
+                if (ventaExistente.getTheFuncion() == null
+                        || !ventaExistente.getTheFuncion().getCodigo()
+                        .equalsIgnoreCase(venta.getTheFuncion().getCodigo())) {
+                    continue;
+                }
+
+                for (Boleta boletaExistente : ventaExistente.getListaBoletaVenta()) {
+                    if (mismoAsiento(boletaExistente, boleta)) {
+                        return false;
+                    }
+                }
             }
         }
 
         listaVentas.add(venta);
         return true;
+    }
+
+    private boolean personaRegistrada(Persona persona, Class<?> tipo) {
+        for (Persona registrada : listaPersona) {
+            if (tipo.isInstance(registrada)
+                    && registrada.getDocumento().equalsIgnoreCase(persona.getDocumento())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean funcionRegistrada(Funcion funcion) {
+        for (Funcion registrada : listaFunciones) {
+            if (registrada.getCodigo().equalsIgnoreCase(funcion.getCodigo())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean asientoValido(Sala sala, Boleta boleta) {
+        String fila = boleta.getFila();
+
+        if (fila == null || fila.length() != 1) {
+            return false;
+        }
+
+        char letraFila = Character.toUpperCase(fila.charAt(0));
+
+        return letraFila >= 'A'
+                && letraFila < 'A' + sala.getFilas()
+                && boleta.getNumeroAsiento() >= 1
+                && boleta.getNumeroAsiento() <= sala.getColumnas();
+    }
+
+    private boolean mismoAsiento(Boleta primera, Boleta segunda) {
+        return primera.getFila().equalsIgnoreCase(segunda.getFila())
+                && primera.getNumeroAsiento() == segunda.getNumeroAsiento();
     }
 
     /**
@@ -205,44 +309,34 @@ public class Cine {
      * @param horaInicio hora de inicio
      * @return true si la sala está disponible
      */
-    public boolean salaDisponible(
-            Sala sala,
-            LocalDate fecha,
-            LocalDateTime horaInicio) {
+        public boolean salaDisponible(
+                Sala sala,
+                LocalDate fecha,
+                LocalDateTime horaInicio,
+        int duracionNueva) {
 
-        if (sala == null ||
-                fecha == null ||
-                horaInicio == null) {
+            if (sala == null || fecha == null || horaInicio == null || duracionNueva <= 0) {
+                return false;
+            }
 
-            return false;
-        }
+            LocalDateTime finNueva = horaInicio.plusMinutes(duracionNueva);
 
-        for (Funcion funcion : listaFunciones) {
+            for (Funcion existente : listaFunciones) {
+                if (existente.getTheSala() != null
+                        && existente.getTheSala().getCodigo().equalsIgnoreCase(sala.getCodigo())
+                        && existente.getFecha().equals(fecha)) {
 
-            if (funcion.getTheSala() != null &&
-                    funcion.getTheSala().getCodigo()
-                            .equalsIgnoreCase(sala.getCodigo()) &&
-                    funcion.getFecha().equals(fecha)) {
+                    LocalDateTime finExistente = existente.calcularHoraFin();
 
-                LocalDateTime finNueva =
-                        horaInicio.plusMinutes(
-                                funcion.getThePelicula()
-                                        .getDuracionMinutos()
-                        );
-
-                LocalDateTime finExistente =
-                        funcion.calcularHoraFin();
-
-                if (horaInicio.isBefore(finExistente) &&
-                        funcion.getHoraInicio().isBefore(finNueva)) {
-
-                    return false;
+                    if (horaInicio.isBefore(finExistente)
+                            && existente.getHoraInicio().isBefore(finNueva)) {
+                        return false;
+                    }
                 }
             }
-        }
 
-        return true;
-    }
+            return true;
+        }
 
     public String getNombreComercial() {
         return nombreComercial;
