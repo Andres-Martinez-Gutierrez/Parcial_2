@@ -44,24 +44,36 @@ public class Venta {
     }
 
     /**
-     * Agrega una boleta a la venta verificando previamente
-     * que el asiento esté disponible para la función.
+     * Agrega una boleta a la venta verificando que el asiento
+     * exista y que no esté repetido dentro de la misma venta.
      *
      * @param fila fila del asiento
      * @param numero número del asiento
-     * @return boleta creada o null si el asiento no está disponible
+     * @return boleta creada o null si el asiento no es válido
      */
     public Boleta agregarBoleta(String fila, int numero) {
 
-        if (!theFuncion.asientoDisponible(fila, numero)) {
+        if (theFuncion == null
+                || !theFuncion.asientoDisponible(fila, numero)) {
+
             return null;
         }
 
-        double valor = theFuncion.calcularValorBoleta(theCliente);
+        for (Boleta boleta : listaBoletaVenta) {
+
+            if (boleta.getFila().equalsIgnoreCase(fila)
+                    && boleta.getNumeroAsiento() == numero) {
+
+                return null;
+            }
+        }
+
+        double valor =
+                theFuncion.calcularValorBoleta(theCliente);
 
         Boleta boleta = new Boleta(
                 codigo + "-B" + (listaBoletaVenta.size() + 1),
-                fila,
+                fila.toUpperCase(),
                 numero,
                 valor
         );

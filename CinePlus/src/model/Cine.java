@@ -41,14 +41,15 @@ public class Cine {
     }
 
     /**
-     * Registra una sala en el cine.
+     * Registra una sala verificando que no exista
+     * otra con el mismo código.
      *
      * @param sala sala que será registrada
      * @return true si fue registrada correctamente
      */
     public boolean registrarSala(Sala sala) {
 
-        if (sala == null) {
+        if (sala == null || sala.getCodigo() == null) {
             return false;
         }
 
@@ -66,15 +67,15 @@ public class Cine {
     }
 
     /**
-     * Registra una película en el catálogo verificando
-     * que no exista otra con el mismo código.
+     * Registra una película verificando que no exista
+     * otra con el mismo código.
      *
      * @param pelicula película que será registrada
      * @return true si fue registrada correctamente
      */
     public boolean registrarPelicula(Pelicula pelicula) {
 
-        if (pelicula == null) {
+        if (pelicula == null || pelicula.getCodigo() == null) {
             return false;
         }
 
@@ -92,67 +93,115 @@ public class Cine {
     }
 
     /**
-     * Programa una función cinematográfica verificando que
-     * no exista conflicto de horario en la misma sala.
+     * Programa una función verificando:
+     * - que los datos sean válidos;
+     * - que no exista otra función con el mismo código;
+     * - que la película esté registrada;
+     * - que la sala esté registrada;
+     * - que no exista conflicto de horario.
      *
      * @param funcion función que será programada
-     * @return true si la función fue programada correctamente
+     * @return true si fue programada correctamente
      */
     public boolean programarFuncion(Funcion funcion) {
+
         if (funcion == null
                 || funcion.getCodigo() == null
                 || funcion.getFecha() == null
                 || funcion.getHoraInicio() == null
                 || funcion.getThePelicula() == null
                 || funcion.getTheSala() == null) {
+
             return false;
         }
 
+        // Verifica que el código de la función sea único.
         for (Funcion existente : listaFunciones) {
-            if (existente.getCodigo().equalsIgnoreCase(funcion.getCodigo())) {
+
+            if (existente.getCodigo()
+                    .equalsIgnoreCase(funcion.getCodigo())) {
+
                 return false;
             }
         }
 
-        boolean peliculaRegistrada = false;
-        for (Pelicula pelicula : listaPeliculas) {
-            if (pelicula.getCodigo().equalsIgnoreCase(
-                    funcion.getThePelicula().getCodigo())) {
-                peliculaRegistrada = true;
-                break;
-            }
-        }
-
-        boolean salaRegistrada = false;
-        for (Sala sala : listaSalas) {
-            if (sala.getCodigo().equalsIgnoreCase(
-                    funcion.getTheSala().getCodigo())) {
-                salaRegistrada = true;
-                break;
-            }
-        }
-
-        if (!peliculaRegistrada || !salaRegistrada) {
+        // Verifica que la película esté registrada.
+        if (!peliculaRegistrada(funcion.getThePelicula())) {
             return false;
         }
 
-        return salaDisponible(
+        // Verifica que la sala esté registrada.
+        if (!salaRegistrada(funcion.getTheSala())) {
+            return false;
+        }
+
+        // Verifica disponibilidad teniendo en cuenta la duración.
+        if (!salaDisponible(
                 funcion.getTheSala(),
                 funcion.getFecha(),
                 funcion.getHoraInicio(),
-                funcion.getThePelicula().getDuracionMinutos()
-        );
+                funcion.getThePelicula().getDuracionMinutos())) {
+
+            return false;
+        }
+
+        // IMPORTANTE:
+        // La función debe quedar almacenada en el cine.
+        listaFunciones.add(funcion);
+
+        return true;
     }
 
     /**
-     * Registra una persona en el sistema.
+     * Verifica si una película está registrada.
+     *
+     * @param pelicula película que se desea verificar
+     * @return true si está registrada
+     */
+    private boolean peliculaRegistrada(Pelicula pelicula) {
+
+        for (Pelicula existente : listaPeliculas) {
+
+            if (existente.getCodigo()
+                    .equalsIgnoreCase(pelicula.getCodigo())) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica si una sala está registrada.
+     *
+     * @param sala sala que se desea verificar
+     * @return true si está registrada
+     */
+    private boolean salaRegistrada(Sala sala) {
+
+        for (Sala existente : listaSalas) {
+
+            if (existente.getCodigo()
+                    .equalsIgnoreCase(sala.getCodigo())) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Registra una persona verificando que su documento
+     * no esté registrado anteriormente.
      *
      * @param persona persona que será registrada
      * @return true si fue registrada correctamente
      */
     public boolean registrarPersona(Persona persona) {
 
-        if (persona == null) {
+        if (persona == null || persona.getDocumento() == null) {
             return false;
         }
 
@@ -170,12 +219,20 @@ public class Cine {
     }
 
     /**
-     * Registra una venta verificando que la venta no sea nula.
+     * Registra una venta verificando que:
+     * - tenga cliente, función y operario;
+     * - la venta tenga al menos una boleta;
+     * - el código sea único;
+     * - cliente y operario estén registrados;
+     * - la función esté registrada;
+     * - los asientos sean válidos;
+     * - no existan asientos repetidos.
      *
      * @param venta venta que será registrada
      * @return true si fue registrada correctamente
      */
     public boolean registrarVenta(Venta venta) {
+
         if (venta == null
                 || venta.getCodigo() == null
                 || venta.getTheCliente() == null
@@ -184,48 +241,68 @@ public class Cine {
                 || venta.getTheFuncion().getTheSala() == null
                 || venta.getListaBoletaVenta() == null
                 || venta.getListaBoletaVenta().isEmpty()) {
+
             return false;
         }
 
+        // Verifica código único de venta.
         for (Venta existente : listaVentas) {
-            if (existente.getCodigo().equalsIgnoreCase(venta.getCodigo())) {
+
+            if (existente.getCodigo()
+                    .equalsIgnoreCase(venta.getCodigo())) {
+
                 return false;
             }
         }
 
+        // Verifica que cliente, operario y función estén registrados.
         if (!personaRegistrada(venta.getTheCliente(), Cliente.class)
                 || !personaRegistrada(venta.getTheOperario(), Operario.class)
                 || !funcionRegistrada(venta.getTheFuncion())) {
+
             return false;
         }
 
         Sala sala = venta.getTheFuncion().getTheSala();
-        List<Boleta> boletasNuevas = venta.getListaBoletaVenta();
 
+        List<Boleta> boletasNuevas =
+                venta.getListaBoletaVenta();
+
+        // Verifica cada boleta.
         for (int i = 0; i < boletasNuevas.size(); i++) {
+
             Boleta boleta = boletasNuevas.get(i);
 
             if (boleta == null || !asientoValido(sala, boleta)) {
                 return false;
             }
 
-            // Evita repetir un asiento dentro de esta misma venta.
+            // No permite repetir asiento dentro de la misma venta.
             for (int j = 0; j < i; j++) {
+
                 Boleta anterior = boletasNuevas.get(j);
+
                 if (mismoAsiento(anterior, boleta)) {
                     return false;
                 }
             }
 
-            // Evita vender un asiento que ya aparece en otra venta de esta función.
+            // No permite vender un asiento ya vendido
+            // para esta misma función.
             for (Venta ventaExistente : listaVentas) {
+
                 if (ventaExistente.getTheFuncion() == null
-                        || !ventaExistente.getTheFuncion().getCodigo()
-                        .equalsIgnoreCase(venta.getTheFuncion().getCodigo())) {
+                        || !ventaExistente.getTheFuncion()
+                        .getCodigo()
+                        .equalsIgnoreCase(
+                                venta.getTheFuncion().getCodigo())) {
+
                     continue;
                 }
 
-                for (Boleta boletaExistente : ventaExistente.getListaBoletaVenta()) {
+                for (Boleta boletaExistente
+                        : ventaExistente.getListaBoletaVenta()) {
+
                     if (mismoAsiento(boletaExistente, boleta)) {
                         return false;
                     }
@@ -234,36 +311,72 @@ public class Cine {
         }
 
         listaVentas.add(venta);
+
         return true;
     }
 
-    private boolean personaRegistrada(Persona persona, Class<?> tipo) {
+    /**
+     * Verifica si una persona está registrada y pertenece
+     * al tipo indicado.
+     *
+     * @param persona persona que se desea buscar
+     * @param tipo clase esperada
+     * @return true si está registrada
+     */
+    private boolean personaRegistrada(
+            Persona persona,
+            Class<?> tipo) {
+
         for (Persona registrada : listaPersona) {
+
             if (tipo.isInstance(registrada)
-                    && registrada.getDocumento().equalsIgnoreCase(persona.getDocumento())) {
+                    && registrada.getDocumento()
+                    .equalsIgnoreCase(persona.getDocumento())) {
+
                 return true;
             }
         }
+
         return false;
     }
 
+    /**
+     * Verifica si una función está registrada.
+     *
+     * @param funcion función que se desea verificar
+     * @return true si está registrada
+     */
     private boolean funcionRegistrada(Funcion funcion) {
+
         for (Funcion registrada : listaFunciones) {
-            if (registrada.getCodigo().equalsIgnoreCase(funcion.getCodigo())) {
+
+            if (registrada.getCodigo()
+                    .equalsIgnoreCase(funcion.getCodigo())) {
+
                 return true;
             }
         }
+
         return false;
     }
 
+    /**
+     * Verifica que el asiento exista físicamente en la sala.
+     *
+     * @param sala sala correspondiente
+     * @param boleta boleta que contiene el asiento
+     * @return true si el asiento es válido
+     */
     private boolean asientoValido(Sala sala, Boleta boleta) {
+
         String fila = boleta.getFila();
 
         if (fila == null || fila.length() != 1) {
             return false;
         }
 
-        char letraFila = Character.toUpperCase(fila.charAt(0));
+        char letraFila =
+                Character.toUpperCase(fila.charAt(0));
 
         return letraFila >= 'A'
                 && letraFila < 'A' + sala.getFilas()
@@ -271,16 +384,28 @@ public class Cine {
                 && boleta.getNumeroAsiento() <= sala.getColumnas();
     }
 
-    private boolean mismoAsiento(Boleta primera, Boleta segunda) {
-        return primera.getFila().equalsIgnoreCase(segunda.getFila())
-                && primera.getNumeroAsiento() == segunda.getNumeroAsiento();
+    /**
+     * Compara dos asientos.
+     *
+     * @param primera primera boleta
+     * @param segunda segunda boleta
+     * @return true si representan el mismo asiento
+     */
+    private boolean mismoAsiento(
+            Boleta primera,
+            Boleta segunda) {
+
+        return primera.getFila()
+                .equalsIgnoreCase(segunda.getFila())
+                && primera.getNumeroAsiento()
+                == segunda.getNumeroAsiento();
     }
 
     /**
      * Busca todas las funciones asociadas a una película.
      *
-     * @param codigo codigo de la película
-     * @return lista de funciones de la película
+     * @param codigo código de la película
+     * @return lista de funciones
      */
     public List<Funcion> funcionesDePelicula(String codigo) {
 
@@ -288,10 +413,10 @@ public class Cine {
 
         for (Funcion funcion : listaFunciones) {
 
-            if (funcion.getThePelicula() != null &&
-                    funcion.getThePelicula()
-                            .getCodigo()
-                            .equalsIgnoreCase(codigo)) {
+            if (funcion.getThePelicula() != null
+                    && funcion.getThePelicula()
+                    .getCodigo()
+                    .equalsIgnoreCase(codigo)) {
 
                 resultado.add(funcion);
             }
@@ -302,41 +427,55 @@ public class Cine {
 
     /**
      * Verifica si una sala está disponible para programar
-     * una función en una fecha y hora determinadas.
+     * una función teniendo en cuenta la duración de la película.
      *
      * @param sala sala que se desea utilizar
      * @param fecha fecha de la función
      * @param horaInicio hora de inicio
+     * @param duracionNueva duración de la nueva función
      * @return true si la sala está disponible
      */
-        public boolean salaDisponible(
-                Sala sala,
-                LocalDate fecha,
-                LocalDateTime horaInicio,
-        int duracionNueva) {
+    public boolean salaDisponible(
+            Sala sala,
+            LocalDate fecha,
+            LocalDateTime horaInicio,
+            int duracionNueva) {
 
-            if (sala == null || fecha == null || horaInicio == null || duracionNueva <= 0) {
-                return false;
-            }
+        if (sala == null
+                || fecha == null
+                || horaInicio == null
+                || duracionNueva <= 0) {
 
-            LocalDateTime finNueva = horaInicio.plusMinutes(duracionNueva);
+            return false;
+        }
 
-            for (Funcion existente : listaFunciones) {
-                if (existente.getTheSala() != null
-                        && existente.getTheSala().getCodigo().equalsIgnoreCase(sala.getCodigo())
-                        && existente.getFecha().equals(fecha)) {
+        LocalDateTime finNueva =
+                horaInicio.plusMinutes(duracionNueva);
 
-                    LocalDateTime finExistente = existente.calcularHoraFin();
+        for (Funcion existente : listaFunciones) {
 
-                    if (horaInicio.isBefore(finExistente)
-                            && existente.getHoraInicio().isBefore(finNueva)) {
-                        return false;
-                    }
+            if (existente.getTheSala() != null
+                    && existente.getTheSala()
+                    .getCodigo()
+                    .equalsIgnoreCase(sala.getCodigo())
+                    && existente.getFecha().equals(fecha)) {
+
+                LocalDateTime finExistente =
+                        existente.calcularHoraFin();
+
+                boolean hayCruce =
+                        horaInicio.isBefore(finExistente)
+                                && existente.getHoraInicio()
+                                .isBefore(finNueva);
+
+                if (hayCruce) {
+                    return false;
                 }
             }
-
-            return true;
         }
+
+        return true;
+    }
 
     public String getNombreComercial() {
         return nombreComercial;
@@ -416,4 +555,3 @@ public class Cine {
                 '}';
     }
 }
-

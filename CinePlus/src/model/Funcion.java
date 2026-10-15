@@ -100,18 +100,23 @@ public class Funcion {
     }
 
     /**
-     * Verifica si un asiento está disponible para esta función.
+     * Verifica si un asiento existe físicamente en la sala.
      *
      * @param fila fila del asiento
      * @param numero número del asiento
-     * @return true si el asiento está disponible
+     * @return true si el asiento existe
      */
     public boolean asientoDisponible(String fila, int numero) {
-        if (theSala == null || fila == null || fila.length() != 1) {
+
+        if (theSala == null
+                || fila == null
+                || fila.length() != 1) {
+
             return false;
         }
 
-        char letraFila = Character.toUpperCase(fila.charAt(0));
+        char letraFila =
+                Character.toUpperCase(fila.charAt(0));
 
         return letraFila >= 'A'
                 && letraFila < 'A' + theSala.getFilas()
