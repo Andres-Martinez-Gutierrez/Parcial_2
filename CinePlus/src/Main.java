@@ -398,13 +398,25 @@ public class Main {
         }
     }
 
-    /** Solicita una fecha. */
+    /**
+     * Solicita una fecha igual o posterior a la fecha actual.
+     */
     private static LocalDate pedirFecha() {
         while (true) {
             String texto = pedirTexto("Fecha de la función (AAAA-MM-DD):");
+
             if (texto == null) return null;
+
             try {
-                return LocalDate.parse(texto);
+                LocalDate fecha = LocalDate.parse(texto);
+
+                if (fecha.isBefore(LocalDate.now())) {
+                    mostrarError("La fecha no puede ser anterior a hoy.");
+                    continue;
+                }
+
+                return fecha;
+
             } catch (DateTimeParseException e) {
                 mostrarError("Fecha inválida. Usa el formato AAAA-MM-DD.");
             }
